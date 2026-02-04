@@ -27,7 +27,6 @@ fn run_frpc(app: tauri::AppHandle, id: i32, token: String) {
     PROCESS_LIST.lock().unwrap().insert(id, child);
 
     tauri::async_runtime::spawn(async move {
-        // 读取诸如 stdout 之类的事件
         while let Some(event) = rx.recv().await {
             if let CommandEvent::Stdout(line) = event {
                 let line_str = String::from_utf8_lossy(&line);
@@ -166,11 +165,6 @@ async fn get_local_ports() -> Result<serde_json::Value, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_autostart::Builder::new().build())
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             // 判断args长度以确保有传入URL参数
             if args.len() < 2 {
@@ -179,6 +173,12 @@ pub fn run() {
             let url = args[1].clone();
             app.emit("deep-link", url).unwrap();
         }))
+        .plugin(tauri_plugin_autostart::Builder::new().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_shell::init())
+       
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![

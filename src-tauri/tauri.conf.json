@@ -43,7 +43,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYyMjY3NzRBMDc2RkZDQ0IKUldUTC9HOEhTbmNtOGdOa0NMWUJoaEZ6WjlmTGlTMTdIdlNmNlpwOXBVK1ZJR0drckUrVUROTUwK",
       "endpoints": [
-        "http://localhost/version.json"
+        "https://api.stellarfrp.top/api/v2/launch/version"
       ]
     }
   }
