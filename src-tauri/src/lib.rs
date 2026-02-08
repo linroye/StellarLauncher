@@ -16,13 +16,16 @@ static PROCESS_LIST: Lazy<Mutex<HashMap<i32, CommandChild>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 #[tauri::command]
-fn run_frpc(app: tauri::AppHandle, id: i32, token: String) {
-    let sidecar_command =
-        app.shell()
-            .sidecar("frpc")
-            .unwrap()
-            .args(["-u", &token, "-t", &id.to_string(), "-d"]);
-    let (mut rx, child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
+async fn run_frpc(app: tauri::AppHandle, id: i32, token: String) -> Result<(), String> {
+    let sidecar_command = app
+        .shell()
+        .sidecar("frpc")
+        .map_err(|e| format!("Failed to create sidecar command: {}", e))?
+        .args(["-u", token.as_str(), "-t", id.to_string().as_str(), "-d"]);
+    
+    let (mut rx, child) = sidecar_command
+        .spawn()
+        .map_err(|e| format!("Failed to spawn sidecar: {}", e))?;
 
     PROCESS_LIST.lock().unwrap().insert(id, child);
 
@@ -35,6 +38,8 @@ fn run_frpc(app: tauri::AppHandle, id: i32, token: String) {
             }
         }
     });
+
+    Ok(())
 }
 
 #[tauri::command]

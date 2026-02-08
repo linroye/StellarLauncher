@@ -207,16 +207,44 @@ export default defineStore('tunnel', () => {
     startedToastShown.value[id] = false
     errorToastShown.value[id] = false
 
-    invoke('run_frpc', { id, token }).catch((error) => {
+    try {
+      await invoke('run_frpc', { id, token })
+      
+      listen('message', (event) => {
+        handleProcessOutput(id.toString(), event.payload as string)
+      })
+
+      handleProcessStatus(id.toString(), 'Running')
+      return true
+    } catch (error: any) {
       console.error('启动隧道进程失败:', error)
-    })
+      const errorStr = String(error)
+      
+      // 检查是否是因为frpc缺失
+      if (
+        errorStr.includes('Failed to create sidecar command') || 
+        errorStr.includes('Failed to spawn sidecar') || 
+        errorStr.includes('program not found') ||
+        errorStr.includes('The system cannot find the file specified')
+      ) {
+        window.dialog.error({
+          title: '组件缺失',
+          content: '核心组件 frpc 未找到，可能已被杀毒软件误删。\n请尝试重新安装软件，并将其添加到白名单中。',
+          positiveText: '确定'
+        })
+      } else {
+        window.message.error('启动隧道失败: ' + errorStr)
+      }
 
-    listen('message', (event) => {
-      handleProcessOutput(id.toString(), event.payload as string)
-    })
-
-    handleProcessStatus(id.toString(), 'Running')
-    return true
+      if (process.value[id]) {
+        process.value[id].status = 'Failed'
+        process.value[id].logs.push({
+          type: 'error',
+          content: '启动失败: ' + errorStr
+        })
+      }
+      return false
+    }
   }
 
   // 停止隧道进程
@@ -265,7 +293,7 @@ export default defineStore('tunnel', () => {
       }
       process.value[id].logs.push({
         type,
-        content: output.replaceAll("'", '').trim()
+        content: output.replace(/'/g, '').trim()
       })  
       
       if (output.includes('隧道启动成功') && !startedToastShown.value[id]) {

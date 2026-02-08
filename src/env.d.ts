@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { DefineComponent } from 'vue'
-import type { MessageApi } from 'naive-ui'
+import type { MessageApi, DialogApi } from 'naive-ui'
 
 declare global {
   declare module '*.vue' {
@@ -10,5 +10,6 @@ declare global {
   }
   interface Window {
     message: MessageApi
+    dialog: DialogApi
   }
 }

@@ -39,6 +39,8 @@
         "language": "zh-CN"
       },
       "nsis": {
+        "installerHooks": "nsis-hooks.nsh",
+        "installMode": "perMachine",
         "languages": [
           "SimpChinese"
         ]
