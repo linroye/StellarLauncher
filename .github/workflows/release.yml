@@ -60,7 +60,8 @@ jobs:
               build-essential \
               curl \
               wget \
-              file 
+              file \
+              xdg-utils
             
             # Configure environment for cross-compilation
             echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
