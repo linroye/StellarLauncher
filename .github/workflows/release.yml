@@ -59,7 +59,8 @@ jobs:
               build-essential \
               curl \
               wget \
-              file
+              file \
+              libfuse2
             
             # Configure environment for cross-compilation
             echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
@@ -80,7 +81,8 @@ jobs:
               build-essential \
               curl \
               wget \
-              file
+              file \
+              libfuse2
           fi
 
       - name: Install Windows ARM64 dependencies
