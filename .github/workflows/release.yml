@@ -161,7 +161,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts-${{ matrix.platform }}-${{ matrix.target }}
+          name: ${{ matrix.target }}
           path: |
             src-tauri/target/${{ matrix.target }}/release/bundle
             latest.json
