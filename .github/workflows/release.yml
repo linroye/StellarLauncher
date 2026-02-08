@@ -75,6 +75,11 @@ jobs:
             echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
             echo "STRIP=aarch64-linux-gnu-strip" >> $GITHUB_ENV
             echo "OBJCOPY=aarch64-linux-gnu-objcopy" >> $GITHUB_ENV
+            
+            # Fix AppImage generation issues with QEMU
+            # See: https://github.com/AppImage/AppImageKit/issues/828
+            echo "ARCH=arm64" >> $GITHUB_ENV
+            # echo "QEMU_LD_PREFIX=/usr/aarch64-linux-gnu" >> $GITHUB_ENV
           else
             # Standard setup (native x86_64 or native aarch64)
             sudo apt-get update
