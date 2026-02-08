@@ -26,13 +26,24 @@
     "active": true,
     "targets": "all",
     "icon": [
+      "icons/icon.png",
       "icons/icon.icns",
       "icons/icon.ico"
     ],
     "externalBin": [
       "../ext/frpc"
     ],
-    "createUpdaterArtifacts": true
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "wix": {
+        "language": "zh-CN"
+      },
+      "nsis": {
+        "languages": [
+          "SimpChinese"
+        ]
+      }
+    }
   },
   "plugins": {
     "deep-link": {
