@@ -144,7 +144,7 @@ jobs:
         with:
           name: build-artifacts-${{ matrix.platform }}-${{ matrix.target }}
           path: |
-            bundle
+            src-tauri/target/${{ matrix.target }}/release/bundle
             latest.json
           retention-days: 7
           if-no-files-found: warn
