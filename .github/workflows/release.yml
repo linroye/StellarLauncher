@@ -18,9 +18,7 @@ jobs:
           - platform: macos-latest
             args: --target x86_64-apple-darwin
           - platform: ubuntu-22.04
-            args: '--target x86_64-unknown-linux-gnu'
-          - platform: ubuntu-22.04
-            args: '--target aarch64-unknown-linux-gnu'
+            args: ''
           - platform: windows-latest
             args: ''
     runs-on: ${{ matrix.platform }}
@@ -98,4 +96,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts-${{ matrix.platform }}
-
+          path: src-tauri/target/bundle
