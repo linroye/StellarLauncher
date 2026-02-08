@@ -80,6 +80,9 @@ jobs:
             # See: https://github.com/AppImage/AppImageKit/issues/828
             echo "ARCH=arm64" >> $GITHUB_ENV
             # echo "QEMU_LD_PREFIX=/usr/aarch64-linux-gnu" >> $GITHUB_ENV
+            
+            # Explicitly set QEMU library path for linuxdeploy
+            echo "QEMU_LD_PREFIX=/usr/aarch64-linux-gnu" >> $GITHUB_ENV
           else
             # Standard setup (native x86_64 or native aarch64)
             sudo apt-get update
