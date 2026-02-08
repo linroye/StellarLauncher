@@ -82,7 +82,8 @@ jobs:
               build-essential \
               curl \
               wget \
-              file 
+              file \
+              xdg-utils
           fi
 
       - name: Install Windows ARM64 dependencies
