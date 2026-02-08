@@ -40,12 +40,12 @@ jobs:
             # Setup for arm64 cross-compilation
             sudo dpkg --add-architecture arm64
             # Modify sources to separate architectures
-            sudo sed -i 's/^deb http/deb [arch=amd64] http/' /etc/apt/sources.list
+            sudo sed -i 's/^deb /deb [arch=amd64] /g' /etc/apt/sources.list
             
             # Add arm64 sources (ports.ubuntu.com)
-            echo "deb [arch=arm64] http://ports.ubuntu.com/ ubuntu-jammy main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-            echo "deb [arch=arm64] http://ports.ubuntu.com/ ubuntu-jammy-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-            echo "deb [arch=arm64] http://ports.ubuntu.com/ ubuntu-jammy-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+            echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
             
             sudo apt-get update
             sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
@@ -147,8 +147,8 @@ jobs:
           name: build-artifacts-${{ matrix.platform }}-${{ matrix.target }}
           path: |
             src-tauri/gen/*/metadata.json
-            src-tauri/target/**/release/*.msi
-            src-tauri/target/**/release/*.exe
+            src-tauri/target/release/**/*.msi
+            src-tauri/target/release/**/*.exe
             src-tauri/target/**/release/bundle/deb/*.deb
             src-tauri/target/**/release/bundle/appimage/*.AppImage
             src-tauri/target/**/release/bundle/dmg/*.dmg
