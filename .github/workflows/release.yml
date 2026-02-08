@@ -36,10 +36,10 @@ jobs:
           fetch-depth: 0
 
       - name: Install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
+        if: startsWith(matrix.platform, 'ubuntu')
         run: |
-          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
-            # Setup for arm64 cross-compilation
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ] && [ "$(uname -m)" != "aarch64" ]; then
+            # Setup for arm64 cross-compilation on x86_64 runner
             sudo dpkg --add-architecture arm64
             # Modify sources to separate architectures
             sudo sed -i 's/^deb /deb [arch=amd64] /g' /etc/apt/sources.list
@@ -70,7 +70,7 @@ jobs:
             echo "STRIP=aarch64-linux-gnu-strip" >> $GITHUB_ENV
             echo "OBJCOPY=aarch64-linux-gnu-objcopy" >> $GITHUB_ENV
           else
-            # Standard x86_64 setup
+            # Standard setup (native x86_64 or native aarch64)
             sudo apt-get update
             sudo apt-get install -y \
               libwebkit2gtk-4.1-dev \
