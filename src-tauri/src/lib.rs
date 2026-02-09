@@ -30,15 +30,42 @@ async fn run_frpc(app: tauri::AppHandle, id: i32, token: String) -> Result<(), S
     PROCESS_LIST.lock().unwrap().insert(id, child);
 
     tauri::async_runtime::spawn(async move {
+        // 监听消息
         while let Some(event) = rx.recv().await {
-            if let CommandEvent::Stdout(line) = event {
-                let line_str = String::from_utf8_lossy(&line);
-                app.emit("message", Some(format!("'{}'", line_str)))
-                    .expect("failed to emit event");
+            match event {
+                CommandEvent::Stdout(line) => {
+                    let line_str = String::from_utf8_lossy(&line);
+                    app.emit(&format!("message-{}", id), Some(format!("'{}'", line_str)))
+                        .expect("failed to emit event");
+                }
+                CommandEvent::Stderr(line) => {
+                    let line_str = String::from_utf8_lossy(&line);
+                    app.emit(&format!("message-{}", id), Some(format!("'[E] {}'", line_str)))
+                        .expect("failed to emit event");
+                }
+                CommandEvent::Error(err) => {
+                    app.emit(&format!("error-{}", id), Some(format!("Error: {}", err)))
+                        .expect("failed to emit event");
+                }
+                CommandEvent::Terminated(payload) => {
+                    if let Some(code) = payload.code {
+                        if code != 0 {
+                            app.emit(&format!("terminated-{}", id), Some(format!("Process terminated with exit code: {}", code)))
+                                .expect("failed to emit event");
+                        } else {
+                            app.emit(&format!("terminated-{}", id), Some(format!("Process terminated with exit code: {}", code)))
+                                .expect("failed to emit event");
+                        }
+                    } else if let Some(signal) = payload.signal {
+                        app.emit(&format!("terminated-{}", id), Some(format!("Process terminated with signal: {}", signal)))
+                            .expect("failed to emit event");
+                    }
+                }
+                _ => {}
             }
         }
     });
-
+    
     Ok(())
 }
 

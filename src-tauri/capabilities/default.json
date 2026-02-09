@@ -29,6 +29,7 @@
     "core:window:allow-start-dragging",
     "shell:allow-spawn",
     "core:window:allow-close",
+    "deep-link:allow-register",
     {
       "identifier": "shell:allow-execute",
       "allow": [

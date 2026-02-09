@@ -8,7 +8,7 @@ import type {
   TunnelStatusResponse
 } from '@/api/types/tunnel'
 import { invoke } from '@tauri-apps/api/core'
-import { listen } from '@tauri-apps/api/event'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
 export type TypeEnum = 'info' | 'warning' | 'error'
 export type ProcessStatus = 'Ready' | 'Running' | 'RemoteRunning' | 'Stopped' | 'Failed'
@@ -16,6 +16,9 @@ export type ProcessStatus = 'Ready' | 'Running' | 'RemoteRunning' | 'Stopped' | 
 export type Process = {
   [key: string]: {
     status: ProcessStatus,
+    unlisten?: Promise<UnlistenFn>,
+    unlistenError?: Promise<UnlistenFn>,
+    unlistenTerminated?: Promise<UnlistenFn>,
     logs: {
       type: TypeEnum
       content: string
@@ -116,6 +119,7 @@ export default defineStore('tunnel', () => {
         invoke('stop_frpc', { id }).catch((error) => {
           console.error('停止隧道进程失败:', error)
         })
+        await process.value[id].unlisten?.then(unlisten => unlisten())
         handleProcessStatus(id.toString(), 'Stopped')
         // 给进程一些时间停止
         await new Promise(resolve => setTimeout(resolve, 1000))
@@ -210,8 +214,15 @@ export default defineStore('tunnel', () => {
     try {
       await invoke('run_frpc', { id, token })
       
-      listen('message', (event) => {
+      // 存储unlisten函数，用于后续停止隧道时调用
+      process.value[id].unlisten = listen(`message-${id}`, (event) => {
         handleProcessOutput(id.toString(), event.payload as string)
+      })
+      process.value[id].unlistenError = listen(`error-${id}`, (event) => {
+        handleProcessError(id.toString(), event.payload as string)
+      })
+      process.value[id].unlistenTerminated = listen(`terminated-${id}`, (event) => {
+        handleProcessTerminated(id.toString(), event.payload as string)
       })
 
       handleProcessStatus(id.toString(), 'Running')
@@ -258,7 +269,11 @@ export default defineStore('tunnel', () => {
           content: '停止隧道失败: ' + error
         })
       }
-      })
+    })
+    // 调用unlisten函数，移除事件监听
+    await process.value[id].unlisten?.then(unlisten => unlisten())
+    await process.value[id].unlistenError?.then(unlisten => unlisten())
+    await process.value[id].unlistenTerminated?.then(unlisten => unlisten())
     handleProcessStatus(id.toString(), 'Stopped')
     if (process.value[id]) {
       // 延迟检查状态，给进程时间退出
@@ -331,6 +346,37 @@ export default defineStore('tunnel', () => {
         type: 'error',
         content: error
       })
+      process.value[id].status = 'Failed'
+      
+      if (!errorToastShown.value[id]) {
+        errorToastShown.value[id] = true
+        window.message.error('隧道错误：' + error, { duration: 6000, closable: true })
+      }
+    }
+  }
+
+  // 处理进程终止
+  const handleProcessTerminated = (id: string, message: string) => {
+    if (process.value[id]) {
+       // 如果是主动停止的，忽略非错误退出码（或者根据需求调整）
+       // 但通常 terminated 事件意味着进程没了
+       
+       process.value[id].logs.push({
+        type: 'error', // 终止通常算作错误或警告，视情况而定
+        content: message
+      })
+      
+      // 如果状态已经是 Stopped (比如用户点了停止)，则不需要变成 Failed
+      if (process.value[id].status !== 'Stopped') {
+         process.value[id].status = 'Failed'
+         if (!errorToastShown.value[id]) {
+            errorToastShown.value[id] = true
+            window.message.error('隧道已终止：' + message, { duration: 6000, closable: true })
+         }
+      }
+      
+      // 清理后端状态（虽然进程已死，但确保万一）
+      invoke('stop_frpc', { id: Number(id) }).catch(() => {})
     }
   }
 
@@ -403,6 +449,8 @@ export default defineStore('tunnel', () => {
         }
       }
     }
+  }).catch((error) => {
+    console.error('获取隧道列表失败:', error)
   })
 
   return {
