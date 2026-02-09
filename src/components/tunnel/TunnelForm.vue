@@ -61,7 +61,7 @@
             </n-form-item>
           </n-grid-item>
           
-          <n-grid-item span="1 xs:2">
+          <n-grid-item span="1 xs:2" v-if="selectedType.toLowerCase() !== 'https'">
             <n-form-item label="远程端口" path="remotePort">
               <n-input-group>
                 <n-input-number 
@@ -101,6 +101,41 @@
             </n-form-item>
           </n-grid-item>
           
+          <n-grid-item span="1 xs:2" v-else>
+            <n-form-item label="SSL证书配置" path="autoTls">
+              <n-flex align="center" style="width: 100%">
+                <n-switch v-model:value="formValue.autoTls" />
+                <n-select
+                  v-if="formValue.autoTls"
+                  v-model:value="selectedSslId"
+                  :options="sslOptions"
+                  placeholder="请选择证书"
+                  :loading="loadingSSL"
+                  :disabled="!formValue.domain"
+                  clearable
+                  style="flex: 1"
+                  size="small"
+                >
+                  <template #empty>
+                    <n-flex vertical align="center" :size="4" style="padding: 8px 0;">
+                      <n-text depth="3">{{ !formValue.domain ? '请先选择域名' : '该域名下无可用证书' }}</n-text>
+                      <n-button 
+                        text 
+                        type="primary" 
+                        size="small"
+                        tag="a"
+                        href="https://console.stellarfrp.top/dns"
+                        target="_blank"
+                      >
+                        去控制台配置
+                      </n-button>
+                    </n-flex>
+                  </template>
+                </n-select>
+              </n-flex>
+            </n-form-item>
+          </n-grid-item>
+          
           <n-grid-item span="1 xs:2" v-if="selectedType.toLowerCase() === 'https'">
             <n-form-item label="域名" path="domain">
               <n-select
@@ -109,7 +144,23 @@
                 :loading="loadingDomains"
                 placeholder="请选择域名"
                 clearable
-              />
+              >
+                <template #empty>
+                  <n-flex vertical align="center" :size="4" style="padding: 8px 0;">
+                    <n-text depth="3">暂无可用域名</n-text>
+                    <n-button 
+                      text 
+                      type="primary" 
+                      size="small"
+                      tag="a"
+                      href="https://console.stellarfrp.top/dns"
+                      target="_blank"
+                    >
+                      去控制台绑定
+                    </n-button>
+                  </n-flex>
+                </template>
+              </n-select>
             </n-form-item>
           </n-grid-item>
           <n-grid-item span="1 xs:2" v-else-if="isHttpOrHttps">
@@ -152,6 +203,12 @@
                       round
                     />
                   </n-form-item>
+                </template>
+
+                <!-- HTTPS特有选项 -->
+                <template v-if="selectedType && selectedType.toLowerCase() === 'https'">
+                  <n-divider style="margin: 8px 0 16px 0; font-size: 12px; color: var(--n-text-color-3);">HTTPS 高级选项</n-divider>
+                  <!-- 此处已移除之前的证书手动输入部分，改为在主表单中通过 autoTls 配置 -->
                 </template>
 
                 <!-- 功能开关 -->
@@ -223,12 +280,41 @@
       </n-form>
     </n-card>
 
-    <n-modal v-model:show="showProcessPicker" preset="card" title="选择本地进程" style="width: 720px;">
-      <n-space size="small" style="margin-bottom: 8px;">
-        <n-input v-model:value="processSearch" placeholder="按名称或端口搜索" round clearable />
-        <n-button type="primary" secondary @click="refreshProcesses" :loading="loadingProcesses">刷新</n-button>
-      </n-space>
-      <n-data-table :columns="processColumns" :data="filteredProcesses" :loading="loadingProcesses" size="small" />
+    <n-modal v-model:show="showProcessPicker" preset="card" title="选择本地进程" style="width: 720px;" size="small" :bordered="false" class="process-modal">
+      <div class="process-picker-content">
+        <n-input-group style="margin-bottom: 12px;">
+          <n-input v-model:value="processSearch" placeholder="搜索进程名、PID或端口..." round clearable>
+            <template #prefix>
+              <n-icon><SearchOutline /></n-icon>
+            </template>
+          </n-input>
+          <n-button type="primary" secondary @click="refreshProcesses" :loading="loadingProcesses" round>
+            <template #icon>
+              <n-icon><RefreshOutline /></n-icon>
+            </template>
+            刷新列表
+          </n-button>
+        </n-input-group>
+        
+        <div class="table-wrapper">
+          <n-data-table 
+            :columns="processColumns" 
+            :data="filteredProcesses" 
+            :loading="loadingProcesses" 
+            size="small"
+            :max-height="400"
+            :virtual-scroll="true"
+            :single-line="false"
+            striped
+          />
+        </div>
+        
+        <div class="process-footer">
+          <n-text depth="3" style="font-size: 12px;">
+            共找到 {{ filteredProcesses.length }} 个可用进程
+          </n-text>
+        </div>
+      </div>
     </n-modal>
   </div>
 </template>
@@ -239,7 +325,8 @@ import type { FormInst } from 'naive-ui'
 import { useNodeStore, useTunnelStore } from '@/stores'
 import type { CreateTunnelRequest } from '@/api/types/tunnel'
 import { domainApi } from '@/api'
-import { NButton } from 'naive-ui'
+import type { SSLInfo } from '@/api/domain'
+import { NButton, NTag, NFlex, NText, NSelect, NSwitch } from 'naive-ui'
 import {
   ArrowBackOutline,
   RefreshOutline,
@@ -248,6 +335,10 @@ import {
   ArchiveOutline,
   RocketOutline,
   InformationCircleOutline,
+  SearchOutline,
+  AppsOutline,
+  GlobeOutline,
+  ServerOutline
 } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { invoke } from '@tauri-apps/api/core'
@@ -297,6 +388,9 @@ const tunnelStore = useTunnelStore()
 
 const loadingDomains = ref(false)
 const domainOptions = ref<{ label: string, value: string }[]>([])
+const sslList = ref<SSLInfo[]>([])
+const loadingSSL = ref(false)
+const selectedSslId = ref<number | null>(null)
 
 const showProcessPicker = ref(false)
 const loadingProcesses = ref(false)
@@ -304,17 +398,71 @@ const processes = ref<ProcessRow[]>([])
 const processSearch = ref('')
 
 const processColumns = [
-  { title: '名称', key: 'name' },
-  { title: 'PID', key: 'pid', width: 90 },
-  { title: '协议', key: 'protocol', width: 80 },
-  { title: '端口', key: 'localPort', width: 100 },
+  { 
+    title: '进程名称', 
+    key: 'name',
+    render(row: any) {
+      return h(
+        NFlex,
+        { align: 'center', size: 8 },
+        { default: () => [
+          h(NText, { strong: true }, { default: () => row.name })
+        ]}
+      )
+    }
+  },
+  { 
+    title: 'PID', 
+    key: 'pid', 
+    width: 80,
+    render(row: any) {
+      return h(NText, { depth: 3, style: { fontFamily: 'monospace' } }, { default: () => row.pid })
+    }
+  },
+  { 
+    title: '协议', 
+    key: 'protocol', 
+    width: 80,
+    render(row: any) {
+      const isTcp = row.protocol?.toUpperCase().includes('TCP')
+      return h(
+        NTag,
+        { 
+          type: isTcp ? 'info' : 'warning', 
+          size: 'small', 
+          bordered: false,
+          round: true
+        },
+        { default: () => row.protocol }
+      )
+    }
+  },
+  { 
+    title: '本地端口', 
+    key: 'localPort', 
+    width: 100,
+    render(row: any) {
+      return h(
+        NTag,
+        { type: 'default', size: 'small', style: { fontFamily: 'monospace' } },
+        { default: () => row.localPort }
+      )
+    }
+  },
   {
     title: '操作',
     key: 'actions',
+    width: 80,
     render(row: any) {
       return h(
         NButton,
-        { size: 'tiny', type: 'primary', onClick: () => selectProcess(row) },
+        { 
+          size: 'tiny', 
+          type: 'primary', 
+          secondary: true,
+          round: true,
+          onClick: () => selectProcess(row) 
+        },
         { default: () => '选择' }
       )
     }
@@ -322,9 +470,19 @@ const processColumns = [
 ]
 
 const filteredProcesses = computed(() => {
+  let list = processes.value
+  
+  // 根据选中的隧道类型过滤协议
+  if (props.selectedType) {
+    const currentType = props.selectedType.toLowerCase()
+    const targetProtocol = currentType === 'udp' ? 'UDP' : 'TCP'
+    list = list.filter(p => p.protocol === targetProtocol)
+  }
+
   const q = processSearch.value.trim().toLowerCase()
-  if (!q) return processes.value
-  return processes.value.filter(p =>
+  if (!q) return list
+  
+  return list.filter(p =>
     (p.name || '').toLowerCase().includes(q) ||
     String(p.pid || '').includes(q) ||
     String(p.localPort || '').includes(q)
@@ -403,17 +561,104 @@ async function fetchDomains() {
   }
 }
 
+async function fetchSSLList() {
+  loadingSSL.value = true
+  try {
+    const res = await domainApi.getSSLList()
+    if (res.code === 200 && res.data) {
+      sslList.value = res.data
+      // 加载完成后，如果有域名且开启了autoTls，尝试自动匹配证书
+      if (props.formValue.domain && props.formValue.autoTls) {
+        const matchingCert = sslList.value.find(item => item.domain === props.formValue.domain)
+        if (matchingCert) {
+          selectedSslId.value = matchingCert.id
+        }
+      }
+    } else {
+      sslList.value = []
+    }
+  } catch (e) {
+    sslList.value = []
+    console.error('获取SSL证书列表失败:', e)
+  } finally {
+    loadingSSL.value = false
+  }
+}
+
 watch(() => props.selectedType, (val) => {
   if (val && val.toLowerCase() === 'https') {
     fetchDomains()
+    fetchSSLList()
+    // 切换到HTTPS时，默认开启autoTls
+    props.formValue.autoTls = true
+    // 切换到HTTPS时，默认设置remotePort为443，如果未设置
+    if (!props.formValue.remotePort) {
+      props.formValue.remotePort = 443
+    }
   }
 })
 
 onMounted(() => {
   if (props.selectedType && props.selectedType.toLowerCase() === 'https') {
     fetchDomains()
+    fetchSSLList()
+    // 如果是新建隧道（非编辑模式），默认开启autoTls
+    if (!props.isEdit) {
+      props.formValue.autoTls = true
+    }
   }
 })
+
+const sslOptions = computed(() => {
+  if (!props.formValue.domain) return []
+  return sslList.value
+    .filter(item => item.domain === props.formValue.domain)
+    .map(item => ({
+      label: item.domain,
+      value: item.id
+    }))
+})
+
+// 监听域名变化，自动选择匹配的证书
+watch(() => props.formValue.domain, (newDomain) => {
+  if (props.formValue.autoTls && newDomain) {
+    const matchingCert = sslList.value.find(item => item.domain === newDomain)
+    if (matchingCert) {
+      selectedSslId.value = matchingCert.id
+      return
+    }
+  }
+  selectedSslId.value = null
+})
+
+// 监听选中的证书ID变化，填充证书内容
+watch(selectedSslId, (newId) => {
+  if (newId) {
+    const cert = sslList.value.find(item => item.id === newId)
+    if (cert) {
+      props.formValue.crtBase64 = cert.certificate
+      props.formValue.keyBase64 = cert.private_key
+    }
+  } else {
+    props.formValue.crtBase64 = ''
+    props.formValue.keyBase64 = ''
+  }
+})
+
+// 监听 autoTls 开关
+watch(() => props.formValue.autoTls, (val) => {
+  if (val) {
+    if (props.formValue.domain) {
+      const matchingCert = sslList.value.find(item => item.domain === props.formValue.domain)
+      if (matchingCert) {
+        selectedSslId.value = matchingCert.id
+      }
+    }
+  } else {
+    selectedSslId.value = null
+  }
+})
+
 
 // 计算端口范围
 const portRange = computed(() => {
@@ -696,5 +941,27 @@ defineExpose({
 
 .submit-button:hover {
   transform: translateY(-1px);
+}
+
+.process-picker-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.table-wrapper {
+  border: 1px solid var(--n-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.process-footer {
+  margin-top: 8px;
+  text-align: right;
+  padding: 0 4px;
+}
+
+/* 隐藏表格外边框 */
+:deep(.n-data-table .n-data-table-wrapper) {
+  border: none;
 }
 </style> 

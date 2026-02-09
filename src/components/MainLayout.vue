@@ -123,7 +123,7 @@ const handleMaximize = async () => {
 }
 
 const handleClose = async  () => {
-  tunnelStore.stopAllTunnels()
+  await tunnelStore.stopAllTunnels()
   exit(0)
 }
 

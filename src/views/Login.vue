@@ -6,7 +6,7 @@
     <div class="stars-layer"></div>
     <div class="color-dots"></div>
     <div class="cosmic-dust"></div>
-    <div class="drop">
+    <div class="drop" data-tauri-drag-region>
       <!-- 关闭按钮 -->
       <div class="close-button" @click="handleClose">
         <n-icon :size="16" color="white">

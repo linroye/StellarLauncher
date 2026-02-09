@@ -114,16 +114,19 @@ async fn get_local_ports() -> Result<serde_json::Value, String> {
                 let pid = parts.last().and_then(|s| s.parse::<u32>().ok());
                 if let Some(idx) = addr.rfind(':') {
                     if let Ok(port) = addr[idx + 1..].parse::<u16>() {
-                        let process = pid.and_then(|p| pid_map.get(&p)).cloned();
-                        let entry = serde_json::json!({
-                            "port": port,
-                            "pid": pid,
-                            "process": process,
-                        });
-                        if proto.starts_with("TCP") {
-                            tcp_ports.push(entry);
-                        } else if proto.starts_with("UDP") {
-                            udp_ports.push(entry);
+                        if let Some(p) = pid {
+                            if let Some(process_name) = pid_map.get(&p) {
+                                let entry = serde_json::json!({
+                                    "port": port,
+                                    "pid": p,
+                                    "process": process_name,
+                                });
+                                if proto.starts_with("TCP") {
+                                    tcp_ports.push(entry);
+                                } else if proto.starts_with("UDP") {
+                                    udp_ports.push(entry);
+                                }
+                            }
                         }
                     }
                 }
@@ -173,16 +176,19 @@ async fn get_local_ports() -> Result<serde_json::Value, String> {
                     .and_then(|s| s.parse::<u32>().ok());
                 if let Some(idx) = addr.rfind(':') {
                     if let Ok(port) = addr[idx + 1..].parse::<u16>() {
-                        let process = pid.and_then(|p| pid_map.get(&p)).cloned();
-                        let entry = serde_json::json!({
-                            "port": port,
-                            "pid": pid,
-                            "process": process,
-                        });
-                        if proto.starts_with("tcp") {
-                            tcp_ports.push(entry);
-                        } else if proto.starts_with("udp") {
-                            udp_ports.push(entry);
+                        if let Some(p) = pid {
+                            if let Some(process_name) = pid_map.get(&p) {
+                                let entry = serde_json::json!({
+                                    "port": port,
+                                    "pid": p,
+                                    "process": process_name,
+                                });
+                                if proto.starts_with("tcp") {
+                                    tcp_ports.push(entry);
+                                } else if proto.starts_with("udp") {
+                                    udp_ports.push(entry);
+                                }
+                            }
                         }
                     }
                 }

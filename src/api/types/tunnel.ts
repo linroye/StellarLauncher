@@ -13,6 +13,9 @@ export interface CreateTunnelRequest {
   proxyProtocolVersion: string
   useEncryption: boolean
   useCompression: boolean
+  autoTls?: boolean
+  crtBase64?: string
+  keyBase64?: string
 }
 
 // 创建隧道响应
@@ -87,6 +90,9 @@ export interface EditTunnelRequest {
   proxyProtocolVersion: string
   useEncryption: boolean
   useCompression: boolean
+  autoTls?: boolean
+  crtBase64?: string
+  keyBase64?: string
 }
 
 // 编辑隧道响应
